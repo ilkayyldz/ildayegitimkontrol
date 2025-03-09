@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import re
 from difflib import SequenceMatcher
+import PyPDF2
 
 st.title("İLDAY - Eğitim Kontrol Uygulaması")
 
@@ -10,9 +11,6 @@ try:
     st.image("logo.png", width=150)  # Logonuzun dosya adını veya tam yolunu ekleyin
 except Exception as e:
     st.warning("Logo yüklenemedi.")
-
-# Sabit bir Excel dosyasını yükle (Kullanıcı değiştiremeyecek)
-EXCEL_FILE = "egitim_listesi.xlsx"  # Dosya adını buraya ekleyin
 
 # Türkçe karakter dönüşümleri yapan fonksiyon
 def normalize_text(text):
@@ -28,47 +26,44 @@ def normalize_text(text):
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
+# PDF'den metin okuma fonksiyonu
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    try:
+        with open(pdf_path, "rb") as file:
+            reader = PyPDF2.PdfReader(file)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+    except Exception as e:
+        st.error(f"PDF dosyası okunurken hata oluştu: {str(e)}")
+        st.stop()
+    return text
+
+# Sabit bir PDF dosyası üzerinden arama yapılacak
+PDF_FILE = "egitim_listesi.pdf"  # Dosya adını buraya ekleyin
+
 try:
-    xl = pd.ExcelFile(EXCEL_FILE)  # Excel dosyasını oku
+    pdf_text = extract_text_from_pdf(PDF_FILE)
     st.success("Eğitim verileri yüklendi!")
 except FileNotFoundError:
-    st.error("Excel dosyası bulunamadı! Lütfen 'egitim_listesi.xlsx' dosyasının mevcut olduğundan emin olun.")
+    st.error("PDF dosyası bulunamadı! Lütfen 'egitim_listesi.pdf' dosyasının mevcut olduğundan emin olun.")
     st.stop()
 except Exception as e:
-    st.error(f"Excel dosyası yüklenirken hata oluştu: {str(e)}")
+    st.error(f"PDF dosyası yüklenirken hata oluştu: {str(e)}")
     st.stop()
 
 search_term = st.text_input("Aramak istediğiniz eğitimi girin:")
 
 if st.button("Kontrol Et"):
-    found_data = {}
+    found_results = []
     search_term_normalized = normalize_text(search_term)  # Kullanıcının girdisini normalize et
+    pdf_text_normalized = normalize_text(pdf_text)
     
-    for sheet_name in xl.sheet_names:
-        try:
-            df = xl.parse(sheet_name)
-            df = df.applymap(lambda x: str(x).strip() if isinstance(x, str) else x)  # Tüm hücreleri temizle
-            
-            for column_name in df.columns:
-                df[column_name] = df[column_name].astype(str).str.strip()
-                df[column_name + '_normalized'] = df[column_name].apply(normalize_text)  # Normalize edilmiş sütun ekle
-                
-                # Kullanıcının girdisini içeren tüm sonuçları getir
-                df['Match Score'] = df[column_name + '_normalized'].apply(lambda x: similarity(search_term_normalized, x))
-                matches = df[df['Match Score'] > 0.5]  # %50 ve üzeri benzerlik gösterenleri getir
-                
-                if not matches.empty:
-                    matches[column_name] = df[column_name]  # Orijinal eğitim adlarını koru
-                    if sheet_name not in found_data:
-                        found_data[sheet_name] = matches.drop(columns=['Match Score', column_name + '_normalized'])
-                    else:
-                        found_data[sheet_name] = pd.concat([found_data[sheet_name], matches.drop(columns=['Match Score', column_name + '_normalized'])])
-        except Exception as e:
-            st.warning(f"'{sheet_name}' sayfası işlenirken hata oluştu: {str(e)}")
+    # Kullanıcının girdisini içeren tüm sonuçları getir
+    if search_term_normalized in pdf_text_normalized:
+        found_results.append(search_term)
     
-    if found_data:
-        for sheet, data in found_data.items():
-            st.subheader(f'{sheet} Sayfası')
-            st.dataframe(data)  # Her sayfanın sonuçlarını ayrı ayrı göster
+    if found_results:
+        st.success(f'"{search_term}" eğitimi PDF dosyanızda bulundu! ✅')
     else:
-        st.error(f'"{search_term}" eğitimi Excel dosyanızda bulunmuyor! ❌')
+        st.error(f'"{search_term}" eğitimi PDF dosyanızda bulunmuyor! ❌')
