@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import re
+from rapidfuzz import fuzz
 
 st.title("İLDAY - Eğitim Kontrol Uygulaması")
 
@@ -48,14 +49,15 @@ if st.button("Kontrol Et"):
             for column_name in df.columns:
                 df[column_name] = df[column_name].astype(str).str.strip().apply(normalize_text)  # Tüm sütunları normalize et
                 
-                # Kullanıcının girdisini içeren tüm sonuçları getir (Tam eşleşme değil, içinde geçenleri de bulur)
-                matches = df[df[column_name].str.contains(search_term_normalized, na=False, regex=False)]
+                # Kullanıcının girdisini en yakın eşleşmelere göre getir
+                df['Match Score'] = df[column_name].apply(lambda x: fuzz.partial_ratio(search_term_normalized, x))
+                matches = df[df['Match Score'] > 70]  # %70 ve üzeri benzerlik gösterenleri getir
                 
                 if not matches.empty:
                     if sheet_name not in found_data:
-                        found_data[sheet_name] = matches
+                        found_data[sheet_name] = matches.drop(columns=['Match Score'])
                     else:
-                        found_data[sheet_name] = pd.concat([found_data[sheet_name], matches])
+                        found_data[sheet_name] = pd.concat([found_data[sheet_name], matches.drop(columns=['Match Score'])])
         except Exception as e:
             st.warning(f"'{sheet_name}' sayfası işlenirken hata oluştu: {str(e)}")
     
