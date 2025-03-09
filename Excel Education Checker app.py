@@ -15,11 +15,13 @@ except Exception as e:
 # Türkçe karakter dönüşümleri yapan fonksiyon
 def normalize_text(text):
     replacements = {
-        "ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c"
+        "ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c",
+        "I": "i", "Ğ": "g", "Ü": "u", "Ş": "s", "Ö": "o", "Ç": "c"
     }
     text = text.lower().strip()
     for key, value in replacements.items():
         text = text.replace(key, value)
+    text = re.sub(r'[^a-zA-Z0-9]', '', text)  # Tüm özel karakterleri ve boşlukları kaldır
     return text
 
 # Benzerlik karşılaştırma fonksiyonu
@@ -63,7 +65,7 @@ if st.button("Kontrol Et"):
     # PDF içeriğini satır bazlı tarayarak kısmi eşleşmeleri bul
     lines = pdf_texts_normalized.split("\n")
     for line in lines:
-        if similarity(search_term_normalized, line) > 0.6:  # %60 ve üzeri benzerlik gösterenleri al
+        if similarity(search_term_normalized, line) > 0.6 or search_term_normalized in line:  # %60 benzerlik veya doğrudan içerme
             found_results.append(line)
     
     if found_results:
