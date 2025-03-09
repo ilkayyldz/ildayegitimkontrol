@@ -28,16 +28,13 @@ def normalize_text(text):
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
-# PDF'den metin okuma fonksiyonu (PyMuPDF ile, blok bazlı)
+# PDF'den metin okuma fonksiyonu (PyMuPDF ile, tam sayfa metin alma)
 def extract_text_from_pdf(pdf_path):
     text = ""
     try:
         with fitz.open(pdf_path) as pdf:
             for page in pdf:
-                blocks = page.get_text("blocks")  # Metni blok halinde oku
-                if blocks:
-                    for block in blocks:
-                        text += block[4] + "\n"  # Blok içeriğini ekle
+                text += page.get_text("text") + "\n"  # Tüm sayfayı tek parça olarak al
     except Exception as e:
         st.error(f"PDF dosyası okunurken hata oluştu: {str(e)}")
         st.stop()
@@ -65,11 +62,11 @@ if st.button("Kontrol Et"):
     search_term_normalized = normalize_text(search_term)  # Kullanıcının girdisini normalize et
     pdf_texts_normalized = normalize_text(pdf_texts)
     
-    # PDF içeriğini blok bazlı tarayarak kısmi eşleşmeleri bul
-    lines = pdf_texts.split("\n")  # Orijinal metni kullan, böylece format korunur
+    # PDF içeriğini tam cümle/paragraf bazında tarayarak kısmi eşleşmeleri bul
+    lines = pdf_texts.split(".\n")  # Noktadan sonra bölerek daha düzenli cümleler halinde al
     for line in lines:
         if similarity(search_term_normalized, normalize_text(line)) > 0.6 or search_term_normalized in normalize_text(line):  # %60 benzerlik veya doğrudan içerme
-            found_results.append(line)
+            found_results.append(line.strip())
     
     if found_results:
         st.success(f'"{search_term}" eğitimi PDF dosyalarınızda bulundu! ✅')
