@@ -14,7 +14,7 @@ except Exception as e:
 # Sabit bir Excel dosyasını yükle (Kullanıcı değiştiremeyecek)
 EXCEL_FILE = "egitim_listesi.xlsx"  # Dosya adını buraya ekleyin
 
-# Türkçe karakter dönüşümleri ve boşlukları kaldıran bir fonksiyon tanımlayalım
+# Türkçe karakter dönüşümleri yapan fonksiyon
 def normalize_text(text):
     replacements = {
         "ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c"
@@ -22,7 +22,6 @@ def normalize_text(text):
     text = text.lower().strip()
     for key, value in replacements.items():
         text = text.replace(key, value)
-    text = re.sub(r'\s+', '', text)  # Tüm boşlukları kaldır
     return text
 
 # Benzerlik karşılaştırma fonksiyonu
@@ -58,6 +57,7 @@ if st.button("Kontrol Et"):
                 matches = df[df['Match Score'] > 0.5]  # %50 ve üzeri benzerlik gösterenleri getir
                 
                 if not matches.empty:
+                    matches[column_name] = df[column_name]  # Orijinal eğitim adlarını koru
                     if sheet_name not in found_data:
                         found_data[sheet_name] = matches.drop(columns=['Match Score'])
                     else:
