@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import re
 from difflib import SequenceMatcher
-import fitz  # PyMuPDF
+import pdfplumber
 
 st.title("İLDAY - Eğitim Kontrol Uygulaması")
 
@@ -21,20 +21,22 @@ def normalize_text(text):
     text = text.lower().strip()
     for key, value in replacements.items():
         text = text.replace(key, value)
-    text = re.sub(r'[^a-zA-Z0-9]', '', text)  # Tüm özel karakterleri ve boşlukları kaldır
+    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)  # Özel karakterleri kaldır ama boşlukları koru
     return text
 
 # Benzerlik karşılaştırma fonksiyonu
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
-# PDF'den metin okuma fonksiyonu (PyMuPDF ile)
+# PDF'den metin okuma fonksiyonu (pdfplumber ile)
 def extract_text_from_pdf(pdf_path):
     text = ""
     try:
-        with fitz.open(pdf_path) as pdf:
-            for page in pdf:
-                text += page.get_text("text") + "\n"
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
     except Exception as e:
         st.error(f"PDF dosyası okunurken hata oluştu: {str(e)}")
         st.stop()
@@ -63,14 +65,14 @@ if st.button("Kontrol Et"):
     pdf_texts_normalized = normalize_text(pdf_texts)
     
     # PDF içeriğini satır bazlı tarayarak kısmi eşleşmeleri bul
-    lines = pdf_texts_normalized.split("\n")
+    lines = pdf_texts.split("\n")  # Orijinal metni kullan, böylece format korunur
     for line in lines:
-        if similarity(search_term_normalized, line) > 0.6 or search_term_normalized in line:  # %60 benzerlik veya doğrudan içerme
+        if similarity(search_term_normalized, normalize_text(line)) > 0.6 or search_term_normalized in normalize_text(line):  # %60 benzerlik veya doğrudan içerme
             found_results.append(line)
     
     if found_results:
         st.success(f'"{search_term}" eğitimi PDF dosyalarınızda bulundu! ✅')
-        for result in found_results:
-            st.write(f"➡ {result}")
+        st.write("### Bulunan Eğitimler:")
+        st.dataframe(pd.DataFrame(found_results, columns=["Eğitim Adı"]))
     else:
         st.error(f'"{search_term}" eğitimi PDF dosyalarınızda bulunmuyor! ❌')
