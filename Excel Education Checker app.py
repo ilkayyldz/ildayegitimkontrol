@@ -50,18 +50,19 @@ if st.button("Kontrol Et"):
             df = df.applymap(lambda x: str(x).strip() if isinstance(x, str) else x)  # Tüm hücreleri temizle
             
             for column_name in df.columns:
-                df[column_name] = df[column_name].astype(str).str.strip().apply(normalize_text)  # Tüm sütunları normalize et
+                df[column_name] = df[column_name].astype(str).str.strip()
+                df[column_name + '_normalized'] = df[column_name].apply(normalize_text)  # Normalize edilmiş sütun ekle
                 
                 # Kullanıcının girdisini içeren tüm sonuçları getir
-                df['Match Score'] = df[column_name].apply(lambda x: similarity(search_term_normalized, x))
+                df['Match Score'] = df[column_name + '_normalized'].apply(lambda x: similarity(search_term_normalized, x))
                 matches = df[df['Match Score'] > 0.5]  # %50 ve üzeri benzerlik gösterenleri getir
                 
                 if not matches.empty:
                     matches[column_name] = df[column_name]  # Orijinal eğitim adlarını koru
                     if sheet_name not in found_data:
-                        found_data[sheet_name] = matches.drop(columns=['Match Score'])
+                        found_data[sheet_name] = matches.drop(columns=['Match Score', column_name + '_normalized'])
                     else:
-                        found_data[sheet_name] = pd.concat([found_data[sheet_name], matches.drop(columns=['Match Score'])])
+                        found_data[sheet_name] = pd.concat([found_data[sheet_name], matches.drop(columns=['Match Score', column_name + '_normalized'])])
         except Exception as e:
             st.warning(f"'{sheet_name}' sayfası işlenirken hata oluştu: {str(e)}")
     
