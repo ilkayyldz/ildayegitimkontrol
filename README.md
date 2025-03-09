@@ -1,0 +1,2 @@
+# ildayegitimkontrol
+Eğitim Kontrol Paneli
