@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import re
 from difflib import SequenceMatcher
-import pdfplumber
+import fitz  # PyMuPDF
 
 st.title("İLDAY - Eğitim Kontrol Uygulaması")
 
@@ -21,22 +21,20 @@ def normalize_text(text):
     text = text.lower().strip()
     for key, value in replacements.items():
         text = text.replace(key, value)
-    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)  # Özel karakterleri kaldır ama boşlukları koru
+    text = re.sub(r'[^a-zA-Z0-9 \n]', '', text)  # Özel karakterleri kaldır ama boşlukları ve satır sonlarını koru
     return text
 
 # Benzerlik karşılaştırma fonksiyonu
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
-# PDF'den metin okuma fonksiyonu (pdfplumber ile)
+# PDF'den metin okuma fonksiyonu (PyMuPDF ile)
 def extract_text_from_pdf(pdf_path):
     text = ""
     try:
-        with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
+        with fitz.open(pdf_path) as pdf:
+            for page in pdf:
+                text += page.get_text("text") + "\n"
     except Exception as e:
         st.error(f"PDF dosyası okunurken hata oluştu: {str(e)}")
         st.stop()
