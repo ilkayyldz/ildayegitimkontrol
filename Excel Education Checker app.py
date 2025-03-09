@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 import re
-from rapidfuzz import fuzz
+from difflib import SequenceMatcher
 
 st.title("İLDAY - Eğitim Kontrol Uygulaması")
 
@@ -24,6 +24,9 @@ def normalize_text(text):
         text = text.replace(key, value)
     text = re.sub(r'\s+', '', text)  # Tüm boşlukları kaldır
     return text
+
+def similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 try:
     xl = pd.ExcelFile(EXCEL_FILE)  # Excel dosyasını oku
@@ -50,8 +53,8 @@ if st.button("Kontrol Et"):
                 df[column_name] = df[column_name].astype(str).str.strip().apply(normalize_text)  # Tüm sütunları normalize et
                 
                 # Kullanıcının girdisini en yakın eşleşmelere göre getir
-                df['Match Score'] = df[column_name].apply(lambda x: fuzz.partial_ratio(search_term_normalized, x))
-                matches = df[df['Match Score'] > 70]  # %70 ve üzeri benzerlik gösterenleri getir
+                df['Match Score'] = df[column_name].apply(lambda x: similarity(search_term_normalized, x))
+                matches = df[df['Match Score'] > 0.7]  # %70 ve üzeri benzerlik gösterenleri getir
                 
                 if not matches.empty:
                     if sheet_name not in found_data:
