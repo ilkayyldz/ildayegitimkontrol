@@ -63,9 +63,10 @@ if st.button("Kontrol Et"):
     pdf_texts_normalized = normalize_text(pdf_texts)
     
     # PDF içeriğini tam cümle/paragraf bazında tarayarak kısmi eşleşmeleri bul
-    lines = pdf_texts.split(".\n")  # Noktadan sonra bölerek daha düzenli cümleler halinde al
+    lines = pdf_texts.split("\n")  # Satır bazında kontrol et
     for line in lines:
-        if similarity(search_term_normalized, normalize_text(line)) > 0.6 or search_term_normalized in normalize_text(line):  # %60 benzerlik veya doğrudan içerme
+        normalized_line = normalize_text(line)
+        if similarity(search_term_normalized, normalized_line) > 0.5 or search_term_normalized in normalized_line:  # %50 benzerlik veya doğrudan içerme
             found_results.append(line.strip())
     
     if found_results:
