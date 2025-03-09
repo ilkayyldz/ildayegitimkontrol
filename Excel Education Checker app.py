@@ -25,6 +25,7 @@ def normalize_text(text):
     text = re.sub(r'\s+', '', text)  # Tüm boşlukları kaldır
     return text
 
+# Benzerlik karşılaştırma fonksiyonu
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
@@ -52,9 +53,9 @@ if st.button("Kontrol Et"):
             for column_name in df.columns:
                 df[column_name] = df[column_name].astype(str).str.strip().apply(normalize_text)  # Tüm sütunları normalize et
                 
-                # Kullanıcının girdisini en yakın eşleşmelere göre getir
+                # Kullanıcının girdisini içeren tüm sonuçları getir
                 df['Match Score'] = df[column_name].apply(lambda x: similarity(search_term_normalized, x))
-                matches = df[df['Match Score'] > 0.7]  # %70 ve üzeri benzerlik gösterenleri getir
+                matches = df[df['Match Score'] > 0.5]  # %50 ve üzeri benzerlik gösterenleri getir
                 
                 if not matches.empty:
                     if sheet_name not in found_data:
